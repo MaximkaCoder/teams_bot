@@ -1,0 +1,4 @@
+1C-1c
+СМЕНА ПАРОЛЯ-change_pass
+WORKRESOURCE-workresource
+НАЗАД

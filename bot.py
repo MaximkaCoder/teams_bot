@@ -3,7 +3,7 @@ import os
 from email.mime.text import MIMEText
 
 from botbuilder.core import ActivityHandler, MessageFactory, TurnContext
-from botbuilder.schema import ChannelAccount, CardAction, ActionTypes, SuggestedActions
+from botbuilder.schema import CardAction, ActionTypes, SuggestedActions
 
 help = False
 helpdesk = False
@@ -30,16 +30,13 @@ class EchoBot(ActivityHandler):
             return await self._send_suggested_actions(turn_context)
         else:
             email = "m.smal@vitmark.com"
-            # password = config.password
             helpdesk_email = "helpdesk@vitmark.com"
-
 
             message = MIMEText(turn_context.activity.text)
             message["Subject"] = turn_context.activity.text
             server = smtplib.SMTP('smtp.vitmark.com', 25)
             server.ehlo()
             server.starttls()
-            # server.login(email, password)
             server.sendmail(email, helpdesk_email, message.as_string())
             await turn_context.send_activity("Заявка отправлена!")
             server.quit()
@@ -59,18 +56,26 @@ class EchoBot(ActivityHandler):
 
     def _process_input(self, text: str):
         global help, helpdesk
-        if text == "инструкции":
-            help = True
-            return "Instructions here"
-        elif text == "1c":
-            return "Instructions for 1C here"
-        elif text == "смена пароля":
-            return self.send_instruction_from_file("change_pass")
-        elif text == "назад":
-            help = False
-        elif text == "helpdesk":
-            helpdesk = True
-            return "Напишите сообщение"
+        file = open(MAIN_DIR + r"/buttons/buttons_help.txt", "r", encoding="UTF-8")
+        data = file.readlines()
+        file.close()
+        try:
+            for i in data:
+                subject = i.split("-")
+
+                if text == "инструкции":
+                    help = True
+                    return "Выберите нужную инструкцию!"
+                elif text == "назад":
+                    help = False
+                    return "Главное меню"
+                elif text == "helpdesk":
+                    helpdesk = True
+                    return "Напишите сообщение"
+                elif text == subject[0].lower():
+                    return self.send_instruction_from_file(subject[1].replace("\n", ""))
+        except Exception:
+            pass
         return
 
 
@@ -95,17 +100,19 @@ class EchoBot(ActivityHandler):
                 ]
             )
         else:
-            file = open("buttons_help.txt", "r", encoding="UTF-8")
+            file = open(MAIN_DIR + r"/buttons/buttons_help.txt", "r", encoding="UTF-8")
             data = file.readlines()
+            file.close()
             actions = []
 
             for i in data:
+                subject = i.split("-")
                 actions += [
                     CardAction(
-                        title=i.replace("\n", ""),
+                        title=subject[0],
                         type=ActionTypes.im_back,
-                        value=i.replace("\n", ""),
-                        image_alt_text=i.replace("\n", ""),
+                        value=subject[0],
+                        image_alt_text=subject[0],
                     ),
                 ]
 
