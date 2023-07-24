@@ -1,5 +1,4 @@
 import smtplib
-import config
 import os
 from email.mime.text import MIMEText
 
@@ -96,27 +95,20 @@ class EchoBot(ActivityHandler):
                 ]
             )
         else:
-            reply.suggested_actions = SuggestedActions(
-                actions=[
+            file = open("buttons_help.txt", "r", encoding="UTF-8")
+            data = file.readlines()
+            actions = []
+
+            for i in data:
+                actions += [
                     CardAction(
-                        title="1C",
+                        title=i.replace("\n", ""),
                         type=ActionTypes.im_back,
-                        value="1C",
-                        image_alt_text="1C",
-                    ),
-                    CardAction(
-                        title="СМЕНА ПАРОЛЯ",
-                        type=ActionTypes.im_back,
-                        value="СМЕНА ПАРОЛЯ",
-                        image_alt_text="СМЕНА ПАРОЛЯ",
-                    ),
-                    CardAction(
-                        title="НАЗАД",
-                        type=ActionTypes.im_back,
-                        value="НАЗАД",
-                        image_alt_text="НАЗАД",
+                        value=i.replace("\n", ""),
+                        image_alt_text=i.replace("\n", ""),
                     ),
                 ]
-            )
+
+            reply.suggested_actions = SuggestedActions(actions=actions)
 
         return await turn_context.send_activity(reply)
