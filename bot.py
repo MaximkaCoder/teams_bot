@@ -5,8 +5,8 @@ from email.mime.text import MIMEText
 from botbuilder.core import ActivityHandler, MessageFactory, TurnContext
 from botbuilder.schema import CardAction, ActionTypes, SuggestedActions
 
-help = False
 helpdesk = False
+help = False
 
 MAIN_DIR = os.getcwd()
 
