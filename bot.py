@@ -15,7 +15,7 @@ class EchoBot(ActivityHandler):
         for member in members_added:
             if member.id != turn_context.activity.recipient.id:
                 from_property = turn_context.activity.from_property
-                await turn_context.send_activity(f"Здравствуйте {from_property.name}! {from_property.aad_object_id} Чем я могу помочь?")
+                await turn_context.send_activity(f"Здравствуйте {from_property.name}! Email ({from_property.aad_object_id}) Чем я могу помочь?")
                 await self._send_suggested_actions(turn_context)
 
 
@@ -26,21 +26,25 @@ class EchoBot(ActivityHandler):
             response_text = self._process_input(text)
 
             await turn_context.send_activity(MessageFactory.text(response_text))
-
             return await self._send_suggested_actions(turn_context)
         else:
-            email = "m.smal@vitmark.com"
-            helpdesk_email = "helpdesk@vitmark.com"
+            if turn_context.activity.text.lower() != "отмена":
+                email = "m.smal@vitmark.com"
+                helpdesk_email = "helpdesk@vitmark.com"
 
-            message = MIMEText(turn_context.activity.text)
-            message["Subject"] = turn_context.activity.text
-            server = smtplib.SMTP('smtp.vitmark.com', 25)
-            server.ehlo()
-            server.starttls()
-            server.sendmail(email, helpdesk_email, message.as_string())
-            await turn_context.send_activity("Заявка отправлена!")
-            server.quit()
-            await self._send_suggested_actions(turn_context)
+                message = MIMEText(turn_context.activity.text)
+                message["Subject"] = turn_context.activity.text
+                server = smtplib.SMTP('smtp.vitmark.com', 25)
+                server.ehlo()
+                server.starttls()
+                server.sendmail(email, helpdesk_email, message.as_string())
+                await turn_context.send_activity("Заявка отправлена!")
+                server.quit()
+                await self._send_suggested_actions(turn_context)
+            else:
+                await turn_context.send_activity("Отмена отправки!")
+                await self._send_suggested_actions(turn_context)
+
             helpdesk = False
 
     def send_instruction_from_file(self, file_name):
@@ -71,7 +75,7 @@ class EchoBot(ActivityHandler):
                     return "Главное меню"
                 elif text == "helpdesk":
                     helpdesk = True
-                    return "Напишите сообщение"
+                    return "Напишите сообщение. Для отмены - напишите 'отмена'"
                 elif text == subject[0].lower():
                     return self.send_instruction_from_file(subject[1].replace("\n", ""))
         except Exception:
