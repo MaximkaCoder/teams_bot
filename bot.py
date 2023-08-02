@@ -7,6 +7,7 @@ from botbuilder.schema import CardAction, ActionTypes, SuggestedActions
 
 helpdesk = False
 help = False
+second_level = False
 
 MAIN_DIR = os.getcwd()
 
@@ -59,10 +60,16 @@ class EchoBot(ActivityHandler):
     
 
     def _process_input(self, text: str):
-        global help, helpdesk
+        global help, helpdesk, second_level
+
         file = open(MAIN_DIR + r"/buttons/buttons_help.txt", "r", encoding="UTF-8")
+        if help:
+            file = open(MAIN_DIR + r"/buttons/buttons_second_level.txt", "r", encoding="UTF-8")
+        elif second_level:
+            file = open(MAIN_DIR + r"/buttons/buttons_help.txt", "r", encoding="UTF-8")
         data = file.readlines()
         file.close()
+
         try:
             for i in data:
                 subject = i.split("-")
@@ -71,11 +78,18 @@ class EchoBot(ActivityHandler):
                     help = True
                     return "Выберите нужную инструкцию!"
                 elif text == "назад":
-                    help = False
+                    if second_level:
+                        second_level = False
+                        help = True
+                    elif help:
+                        help = False
                     return "Главное меню"
                 elif text == "helpdesk":
                     helpdesk = True
                     return "Напишите сообщение. Для отмены - напишите 'отмена'"
+                elif text == "прочее":
+                    second_level = True
+                    help = False
                 elif text == subject[0].lower():
                     return self.send_instruction_from_file(subject[1].replace("\n", ""))
         except Exception:
@@ -86,7 +100,7 @@ class EchoBot(ActivityHandler):
     async def _send_suggested_actions(self, turn_context: TurnContext):
         reply = MessageFactory.text("")
 
-        if not help:
+        if not help and not second_level:
             reply.suggested_actions = SuggestedActions(
                 actions=[
                     CardAction(
@@ -103,7 +117,25 @@ class EchoBot(ActivityHandler):
                     ),
                 ]
             )
-        else:
+        elif help:
+            file = open(MAIN_DIR + r"/buttons/buttons_second_level.txt", "r", encoding="UTF-8")
+            data = file.readlines()
+            file.close()
+            actions = []
+
+            for i in data:
+                subject = i.split("-")
+                actions += [
+                    CardAction(
+                        title=subject[0],
+                        type=ActionTypes.im_back,
+                        value=subject[0],
+                        image_alt_text=subject[0],
+                    ),
+                ]
+
+            reply.suggested_actions = SuggestedActions(actions=actions)
+        elif second_level:
             file = open(MAIN_DIR + r"/buttons/buttons_help.txt", "r", encoding="UTF-8")
             data = file.readlines()
             file.close()
