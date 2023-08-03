@@ -5,9 +5,12 @@ from email.mime.text import MIMEText
 from botbuilder.core import ActivityHandler, MessageFactory, TurnContext
 from botbuilder.schema import CardAction, ActionTypes, SuggestedActions
 
+main_menu = True
 helpdesk = False
 help = False
-second_level = False
+other = False
+is_1c = False
+mail = False
 
 MAIN_DIR = os.getcwd()
 
@@ -60,12 +63,12 @@ class EchoBot(ActivityHandler):
     
 
     def _process_input(self, text: str):
-        global help, helpdesk, second_level
+        global main_menu, help, helpdesk, other, is_1c, mail
 
         file = open(MAIN_DIR + r"/buttons/buttons_help.txt", "r", encoding="UTF-8")
         if help:
-            file = open(MAIN_DIR + r"/buttons/buttons_second_level.txt", "r", encoding="UTF-8")
-        elif second_level:
+            file = open(MAIN_DIR + r"/buttons/buttons_other.txt", "r", encoding="UTF-8")
+        elif other:
             file = open(MAIN_DIR + r"/buttons/buttons_help.txt", "r", encoding="UTF-8")
         data = file.readlines()
         file.close()
@@ -76,31 +79,69 @@ class EchoBot(ActivityHandler):
 
                 if text == "инструкции":
                     help = True
+                    main_menu = False
                     return "Выберите нужную инструкцию!"
                 elif text == "назад":
-                    if second_level:
-                        second_level = False
+                    if other or mail or is_1c:
+                        other = False
+                        mail = False
+                        is_1c = False
                         help = True
                     elif help:
                         help = False
-                    return "Главное меню"
+                        main_menu = True
+                    else:
+                        main_menu = True
+                        other = False
+                        help = True
+                        is_1c = True
+                    return
                 elif text == "helpdesk":
                     helpdesk = True
+                    main_menu = False
                     return "Напишите сообщение. Для отмены - напишите 'отмена'"
                 elif text == "прочее":
-                    second_level = True
+                    other = True
+                    help = False
+                    main_menu = False
+                elif text == "1c":
+                    is_1c = True
+                    main_menu = False
+                    help = False
+                elif text == "почта":
+                    mail = True
+                    main_menu = False
                     help = False
                 elif text == subject[0].lower():
                     return self.send_instruction_from_file(subject[1].replace("\n", ""))
+                else:
+                    pass
         except Exception:
             pass
         return
+    
+    def make_buttons(self, data):
+        actions = []
+
+        for i in data:
+            subject = i.split("-")
+            actions += [
+                CardAction(
+                    title=subject[0],
+                    type=ActionTypes.im_back,
+                    value=subject[0],
+                    image_alt_text=subject[0],
+                ),
+            ]
+        
+        return actions
+
 
 
     async def _send_suggested_actions(self, turn_context: TurnContext):
         reply = MessageFactory.text("")
 
-        if not help and not second_level:
+        if main_menu:
             reply.suggested_actions = SuggestedActions(
                 actions=[
                     CardAction(
@@ -118,40 +159,24 @@ class EchoBot(ActivityHandler):
                 ]
             )
         elif help:
-            file = open(MAIN_DIR + r"/buttons/buttons_second_level.txt", "r", encoding="UTF-8")
+            file = open(MAIN_DIR + r"/buttons/buttons_other.txt", "r", encoding="UTF-8")
             data = file.readlines()
             file.close()
-            actions = []
-
-            for i in data:
-                subject = i.split("-")
-                actions += [
-                    CardAction(
-                        title=subject[0],
-                        type=ActionTypes.im_back,
-                        value=subject[0],
-                        image_alt_text=subject[0],
-                    ),
-                ]
-
-            reply.suggested_actions = SuggestedActions(actions=actions)
-        elif second_level:
+            reply.suggested_actions = SuggestedActions(actions=self.make_buttons(data))
+        elif other:
             file = open(MAIN_DIR + r"/buttons/buttons_help.txt", "r", encoding="UTF-8")
             data = file.readlines()
             file.close()
-            actions = []
-
-            for i in data:
-                subject = i.split("-")
-                actions += [
-                    CardAction(
-                        title=subject[0],
-                        type=ActionTypes.im_back,
-                        value=subject[0],
-                        image_alt_text=subject[0],
-                    ),
-                ]
-
-            reply.suggested_actions = SuggestedActions(actions=actions)
+            reply.suggested_actions = SuggestedActions(actions=self.make_buttons(data))
+        elif is_1c:
+            file = open(MAIN_DIR + r"/buttons/buttons_1c.txt", "r", encoding="UTF-8")
+            data = file.readlines()
+            file.close()
+            reply.suggested_actions = SuggestedActions(actions=self.make_buttons(data))
+        elif mail:
+            file = open(MAIN_DIR + r"/buttons/buttons_mail.txt", "r", encoding="UTF-8")
+            data = file.readlines()
+            file.close()
+            reply.suggested_actions = SuggestedActions(actions=self.make_buttons(data))
 
         return await turn_context.send_activity(reply)
