@@ -137,7 +137,6 @@ class EchoBot(ActivityHandler):
         return actions
 
 
-
     async def _send_suggested_actions(self, turn_context: TurnContext):
         reply = MessageFactory.text("")
 
